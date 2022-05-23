@@ -1,0 +1,26 @@
+{
+    "name": "pouya-parsaei/laravel-to-do",
+    "description": "Laravel To-Do package with authentication",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "pouya-parsaei",
+            "email": "pouya.goodboy1371@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "PouyaParsaei\\LaravelToDo\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PouyaParsaei\\LaravelToDo\\LaravelToDoServiceProvider"
+            ]
+        }
+    }
+}
