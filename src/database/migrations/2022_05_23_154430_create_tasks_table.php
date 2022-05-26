@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use PouyaParsaei\LaravelToDo\Consts\TaskStatus;
 
 class CreateTasksTable extends Migration
 {
@@ -16,8 +17,8 @@ class CreateTasksTable extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->char('title');
-            $table->text('description');
-            $table->tinyInteger('status');
+            $table->text('description')->nullable();
+            $table->tinyInteger('status')->default(TaskStatus::OPEN);
             $table->foreignId('user_id')->constrained();
             $table->timestamps();
         });

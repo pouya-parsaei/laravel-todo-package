@@ -5,6 +5,7 @@ namespace PouyaParsaei\LaravelToDo\tests\Feature\Models;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Arr;
+use PouyaParsaei\LaravelToDo\Consts\TaskStatus;
 use PouyaParsaei\LaravelToDo\Models\Label;
 use PouyaParsaei\LaravelToDo\Models\Task;
 use Tests\TestCase;
@@ -19,7 +20,7 @@ class TaskTest extends TestCase
         $task = Task::create([
             'title' => 'test',
             'description' => 'Lorem ipsum dolor',
-            'status' => Arr::random([0, 1]),
+            'status' => Arr::random([TaskStatus::OPEN,TaskStatus::CLOSE]),
             'user_id' => $user->id
         ]);
 

@@ -14,7 +14,10 @@ class AddTokenColumnToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('token')->nullable()->after('password');
+            $table->string('api_token', 80)->after('password')
+                ->unique()
+                ->nullable()
+                ->default(null);
         });
     }
 
@@ -26,7 +29,7 @@ class AddTokenColumnToUsersTable extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('token');
+            $table->dropColumn('api_token');
         });
     }
 }

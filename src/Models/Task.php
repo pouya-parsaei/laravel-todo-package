@@ -4,18 +4,20 @@ namespace PouyaParsaei\LaravelToDo\Models;
 
 use App\User;
 use Illuminate\Database\Eloquent\Model;
+use PouyaParsaei\LaravelToDo\Consts\TaskStatus;
 
 class Task extends Model
 {
-    protected $fillable = ['title','description','status','user_id'];
+    protected $fillable = ['title', 'description', 'status', 'user_id'];
 
     public function user()
     {
-        return  $this->belongsTo(User::class);
+        return $this->belongsTo(User::class);
     }
 
     public function labels()
     {
         return $this->belongsToMany(Label::class);
     }
+
 }

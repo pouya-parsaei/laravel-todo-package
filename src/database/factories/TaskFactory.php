@@ -5,13 +5,25 @@
 use App\User;
 use Faker\Generator as Faker;
 use Illuminate\Support\Arr;
+use PouyaParsaei\LaravelToDo\Consts\TaskStatus;
 use PouyaParsaei\LaravelToDo\Models\Task;
 
 $factory->define(Task::class, function (Faker $faker) {
     return [
         'title' => $faker->word,
         'description' => $faker->sentence,
-        'status' => Arr::random([0,1]),
+        'status' => Arr::random([TaskStatus::OPEN,TaskStatus::CLOSE]),
         'user_id' => factory(User::class)
     ];
+
 });
+
+$factory->state(Task::class, 'close' , [
+        'status' => TaskStatus::CLOSE,
+    ]
+);
+
+$factory->state(Task::class, 'open' , [
+        'status' => TaskStatus::OPEN,
+    ]
+);
