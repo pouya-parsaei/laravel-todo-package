@@ -24,8 +24,10 @@ class LaravelToDoServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/resources/lang' => resource_path('lang/vendor/todo'),
             __DIR__ . '/resources/views' => resource_path('views/vendor/todo')
-
         ]);
+        $this->publishes([
+            __DIR__.'/resources/assets' => public_path('vendor/todo'),
+        ], 'public');
 
     }
 

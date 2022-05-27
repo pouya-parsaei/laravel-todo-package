@@ -27,7 +27,7 @@ class LoginController extends Controller
 
     public function loginForm()
     {
-        return view('todo::auth.login');
+        return view('todo::authentication');
     }
 
     public function login(Request $request)
@@ -44,6 +44,7 @@ class LoginController extends Controller
         $user->update([
             'api_token' => Str::random(60)
         ]);
+
         $token = User::where('id',$user->id)->first()->api_token;
         return $this->respondSuccess('You have Logged In Successfully',['token'=>$token]);
     }
