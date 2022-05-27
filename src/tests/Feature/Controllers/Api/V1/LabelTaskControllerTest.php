@@ -16,7 +16,6 @@ class LabelTaskControllerTest extends TestCase
 
     public function testEnsureAuthUserCanAddLabelToHisOwnTask()
     {
-        $this->withoutExceptionHandling();
         $user = factory(User::class)->create();
         $labels = factory(Label::class, random_int(1, 10))->create()->pluck('id');
         $userTask = $user->tasks()->create(
@@ -97,6 +96,95 @@ class LabelTaskControllerTest extends TestCase
 
     }
 
+    public function testEnsureLabelsSyncToTaskCorrectlyWhenTaskHasLabels()
+    {
+        $userLabels = factory(Label::class, random_int(1, 10))->create()->pluck('id');
+        $user = factory(User::class)->create();
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->states('withoutDefaultUserId')->make()->toArray()
+        );
+        $userTask->labels()->attach($userLabels);
+
+        $newLabels = factory(Label::class, random_int(1, 10))->create()->pluck('id');
+
+        $data = ['labels' => $newLabels];
+
+        $token = $this->createAuthorizationToken($user->api_token);
+
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->postJson(
+                route('tasks.add-label', $userTask),
+                $data
+            );
+
+        $this
+            ->assertEquals(201, $response->getStatusCode());
+
+        $mergedLabels = $userLabels->merge($newLabels);
+
+        foreach ($mergedLabels as $mergedLabel) {
+            $this
+                ->assertDatabaseHas('label_task', [
+                    'task_id' => $userTask->id,
+                    'label_id' => $mergedLabel
+                ]);
+        }
+
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
+
+        $response
+            ->assertJson(json_decode($response->getContent(), true));
+
+    }
+
+    public function testEnsureLabelsSyncToTaskCorrectlyWhenLabelIsDuplicated()
+    {
+        $user = factory(User::class)->create();
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->states('withoutDefaultUserId')->make()->toArray()
+        );
+        $userLabels = factory(Label::class, random_int(1, 10))->create()->pluck('id');
+        $userTask->labels()->attach($userLabels);
+
+        $newLabels = factory(Label::class, random_int(1, 10))->create()->pluck('id');
+        $mergedLabels = $userLabels->merge($newLabels);
+
+
+        $data = ['labels' => $mergedLabels];
+
+        $token = $this->createAuthorizationToken($user->api_token);
+
+        $response = $this->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->postJson(
+                route('tasks.add-label', $userTask),
+                $data
+            );
+
+        $taskLabelsAfterSync = Task::find($userTask->id)->labels()->count();
+        $this->assertEquals($mergedLabels->count(), $taskLabelsAfterSync);
+        foreach ($mergedLabels as $mergedLabel) {
+            $this
+                ->assertDatabaseHas('label_task', [
+                    'task_id' => $userTask->id,
+                    'label_id' => $mergedLabel
+                ]);
+        }
+
+    }
+
+
     public function testValidationRequestRequiredDataForLabels()
     {
         $user = factory(User::class)->create();
@@ -104,20 +192,27 @@ class LabelTaskControllerTest extends TestCase
         $userTask = $user->tasks()->create(
             factory(Task::class)->make()->toArray()
         );
-        $errors = [
-            'labels' => 'The labels field is required.',
-        ];
+        $error = 'The labels field is required.';
+
 
         $data = [];
 
-        $this
+        $response = $this
             ->actingAs($user)
             ->withHeaders([
                 'HTTP_X-Requested-With' => 'XMLHttpRequest',
                 'Authorization' => $token,
             ])
-            ->post(route('tasks.add-label', $userTask), $data)
-            ->assertSessionHasErrors($errors);
+            ->post(route('tasks.add-label', $userTask), $data);
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
     }
 
     public function testValidationRequestMustBeArrayForLabels()
@@ -127,20 +222,146 @@ class LabelTaskControllerTest extends TestCase
         $userTask = $user->tasks()->create(
             factory(Task::class)->make()->toArray()
         );
-        $errors = [
-            'labels' => 'The labels must be an array.',
-        ];
+        $error = 'The labels must be an array.';
 
         $data = ['labels' => 'lfdkjshfksj'];
 
-        $this
+        $response = $this
             ->actingAs($user)
             ->withHeaders([
                 'HTTP_X-Requested-With' => 'XMLHttpRequest',
                 'Authorization' => $token,
             ])
-            ->post(route('tasks.add-label', $userTask), $data)
-            ->assertSessionHasErrors($errors);
+            ->post(route('tasks.add-label', $userTask), $data);
+
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
     }
 
+    public function testValidationRequestRequiredDataForLabelsItems()
+    {
+        $user = factory(User::class)->create();
+        $token = $this->createAuthorizationToken($user->api_token);
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->make()->toArray()
+        );
+        $error = 'The labels.0 field is required.';
+
+        $data = ['labels' => ['']];
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->post(route('tasks.add-label', $userTask), $data);
+
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels.0'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
+    }
+
+    public function testValidationRequestMustBeIntegerForLabelsItems()
+    {
+        $user = factory(User::class)->create();
+        $token = $this->createAuthorizationToken($user->api_token);
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->make()->toArray()
+        );
+        $error = 'The labels.0 must be an integer.';
+
+        $data = ['labels' => ['test test']];
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->post(route('tasks.add-label', $userTask), $data);
+
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels.0'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
+    }
+
+    public function testValidationRequestMinimumIntForLabelsItems()
+    {
+        $user = factory(User::class)->create();
+        $token = $this->createAuthorizationToken($user->api_token);
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->make()->toArray()
+        );
+        $error = 'The labels.0 must be at least 1.';
+
+        $data = ['labels' => [0]];
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->post(route('tasks.add-label', $userTask), $data);
+
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels.0'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
+    }
+
+    public function testValidationRequestLabelExistsForLabelsItems()
+    {
+        $user = factory(User::class)->create();
+        $token = $this->createAuthorizationToken($user->api_token);
+        $userTask = $user->tasks()->create(
+            factory(Task::class)->make()->toArray()
+        );
+        $error = 'The selected labels.0 is invalid.';
+
+        $data = ['labels' => [1000]];
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders([
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+                'Authorization' => $token,
+            ])
+            ->post(route('tasks.add-label', $userTask), $data);
+
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals($error, $responseData['labels.0'][0]);
+        $this->assertEquals(422, $response->getStatusCode());
+        $response->assertJson($responseData);
+        $this
+            ->assertEquals(
+                request()->route()->middleware(),
+                $this->middlewares
+            );
+    }
 }

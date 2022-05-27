@@ -2,7 +2,9 @@
 
 namespace PouyaParsaei\LaravelToDo\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
 class AddLabelsToTaskRequest extends FormRequest
@@ -25,7 +27,13 @@ class AddLabelsToTaskRequest extends FormRequest
     public function rules()
     {
         return [
-            'labels' => ['required','array']
+            'labels' => ['required','array'],
+            'labels.*' => ['required','integer','min:1',Rule::exists('labels','id')],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json($validator->errors(), 422));
     }
 }

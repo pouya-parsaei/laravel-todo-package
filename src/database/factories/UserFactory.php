@@ -4,6 +4,7 @@
 
 use App\User;
 use Faker\Generator as Faker;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /*
@@ -33,3 +34,15 @@ $factory->state(User::class, 'withoutApiToken', function ($faker) {
         'api_token' => NULL
     ];
 });
+
+$factory->state(User::class, 'pouya', function ($faker) {
+    return [
+        'name' => 'pouya',
+        'email' => 'pouya@gmail.com',
+        'email_verified_at' => now(),
+        'api_token' => Str::random(60),
+        'password' => bcrypt("12345678"), // password
+        'remember_token' => Str::random(10)
+    ];
+});
+

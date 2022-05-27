@@ -142,8 +142,10 @@ class TaskControllerTest extends TestCase
 
     public function testEnsureAuthUserCanOpenATask()
     {
-        $task = factory(Task::class)->states('close')->create();
         $user = factory(User::class)->create();
+        $task = $user->tasks()->create(
+            factory(Task::class)->states('close')->make()->toArray()
+        );
         $token = $this->createAuthorizationToken($user->api_token);
         $data = ['status' => TaskStatus::OPEN];
 
@@ -195,11 +197,12 @@ class TaskControllerTest extends TestCase
 
     public function testEnsureAuthUserCanCloseATask()
     {
-        $task = factory(Task::class)->states('open')->create();
         $user = factory(User::class)->create();
+        $task = $user->tasks()->create(
+            factory(Task::class)->states('close')->make()->toArray()
+        );
         $token = $this->createAuthorizationToken($user->api_token);
         $data = ['status' => TaskStatus::CLOSE];
-        Notification::fake();
 
         $response = $this->actingAs($user)
             ->withHeaders([
@@ -212,9 +215,6 @@ class TaskControllerTest extends TestCase
             );
 
 
-        Notification::assertSentTo(
-            [$user], TaskClosed::class
-        );
 
         $taskInResponse = json_decode($response->getContent(), true)['data'];
         $taskAfterUpdate = Task::find($task->id)->toArray();
@@ -239,10 +239,14 @@ class TaskControllerTest extends TestCase
 
     public function testEnsureNotificationSendWhenAuthUserCloseTask()
     {
-        $task = factory(Task::class)->states('open')->create();
         $user = factory(User::class)->create();
+        $task = $user->tasks()->create(
+            factory(Task::class)->states('close')->make()->toArray()
+        );
         $token = $this->createAuthorizationToken($user->api_token);
         $data = ['status' => TaskStatus::CLOSE];
+
+        Notification::fake();
 
         $response = $this->actingAs($user)
             ->withHeaders([
@@ -253,6 +257,10 @@ class TaskControllerTest extends TestCase
                 route('tasks.close-status', $task->id),
                 $data
             );
+
+        Notification::assertSentTo(
+            [$user], TaskClosed::class
+        );
 
         $updatedTask = json_decode($response->getContent(), true)['data'];
 
@@ -338,8 +346,10 @@ class TaskControllerTest extends TestCase
     }
 
 
+
     public function testEnsureAuthUserCanGetHisOwnTasks()
     {
+        $this->withoutExceptionHandling();
         foreach (range(2, 5) as $item) {
             Label::create(['name' => 'test' . rand(1000, 3000)]);
         }

@@ -24,8 +24,8 @@ class TaskController extends Controller
 
     public function update(TaskUpdateRequest $request, Task $task)
     {
-        if(!auth()->user()->hasThisTask($task))
-            return  $this->respondNotAuthorized('todo::messages.errors.not authorized');
+        if (!auth()->user()->hasThisTask($task))
+            return $this->respondNotAuthorized('todo::messages.errors.not authorized');
 
         $task->update($request->all());
 
@@ -37,6 +37,9 @@ class TaskController extends Controller
 
     public function openStatus(Task $task)
     {
+        if (!auth()->user()->hasThisTask($task))
+            return $this->respondNotAuthorized('todo::messages.errors.not authorized');
+
         $task->update([
             'status' => TaskStatus::OPEN
         ]);
@@ -48,6 +51,9 @@ class TaskController extends Controller
 
     public function closeStatus(Task $task)
     {
+        if (!auth()->user()->hasThisTask($task))
+            return $this->respondNotAuthorized('todo::messages.errors.not authorized');
+
         $task->update([
             'status' => TaskStatus::CLOSE
         ]);
@@ -61,8 +67,8 @@ class TaskController extends Controller
 
     public function show(Task $task)
     {
-        if(!auth()->user()->hasThisTask($task))
-            return  $this->respondNotAuthorized('todo::messages.errors.not authorized');
+        if (!auth()->user()->hasThisTask($task))
+            return $this->respondNotAuthorized(trans('todo::messages.errors.not authorized'));
 
         return $this->respondSuccess(trans('todo::messages.success'), $task->toArray());
 
@@ -70,7 +76,11 @@ class TaskController extends Controller
 
     public function index()
     {
-        $tasks = Task::where('user_id',auth()->user()->id)->with('labels')->get();
-        return TaskResource::collection($tasks);
+        $tasks = Task::where('user_id', auth()->user()->id)->with('labels')->get();
+
+        $tasksResource = TaskResource::collection($tasks);
+
+        return $this->respondWithResource($tasksResource,trans('todo::messages.success'));
     }
+
 }

@@ -14,11 +14,13 @@ class LabelTaskController extends Controller
 
     public function addLabelsToTask(AddLabelsToTaskRequest $request, Task $task)
     {
-        if(!auth()->user()->hasThisTask($task))
-            return  $this->respondNotAuthorized('todo::messages.errors.not authorized');
+        if (!auth()->user()->hasThisTask($task))
+            return $this->respondNotAuthorized(trans('todo::messages.errors.not authorized'));
 
-        $task->labels()->attach($request->labels);
+        $task->labels()->syncWithoutDetaching($request->labels);
 
-        return $this->respondCreated('todo::messages.success',[]);
+        $taskAfterUpdateWithLabels = Task::with('labels:id,name')->find($task->id)->toArray();
+
+        return $this->respondCreated(trans('todo::messages.success'), $taskAfterUpdateWithLabels);
     }
 }

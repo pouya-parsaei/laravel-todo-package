@@ -16,13 +16,9 @@ class LabelResource extends JsonResource
     public function toArray($request)
     {
         return [
-            'success' => true,
-            'message' => trans('todo::messages.success'),
-            'data' => [
                 'id' => $this->id,
                 'label' => $this->name,
                 'total_tasks_having_this_label' => $this->count_auth_user_tasks
-            ]
         ];
     }
 }

@@ -204,7 +204,6 @@ class LabelControllerTest extends TestCase
 
         $labelsInResponse = json_decode($response->getContent(), true)['data'];
         $totalLabelsInDatabase = Label::count();
-
         $this->assertEquals($totalLabelsInDatabase, count($labelsInResponse));
 
 
